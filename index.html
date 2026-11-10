@@ -127,7 +127,7 @@
   .reco ul{margin:0;padding-left:18px}
   .reco li{margin:6px 0;color:var(--muted);font-size:.92rem;line-height:1.35}
 
-  .subbar{display:flex;justify-content:flex-end;margin-bottom:10px}
+  .subbar{display:flex;justify-content:space-between;margin-bottom:10px}
   .hist-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;color:var(--muted);font-size:.85rem;border:1px solid transparent}
   .hist-btn.active,.hist-btn:active{color:var(--accent);border-color:var(--line);background:var(--bg2)}
   .hist{padding:0;overflow:hidden}
@@ -148,6 +148,23 @@
   .tomorrow{margin-top:14px;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--accent) 10%,var(--bg2));border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
   .tomorrow ul{margin:4px 0 0;padding:0;list-style:none}
   .tomorrow li{margin:7px 0;font-size:.9rem;line-height:1.4}
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:14px}
+  .seg button{padding:9px 4px;border-radius:10px;font-weight:600;font-size:.9rem}
+  .seg button.on{background:var(--card);color:var(--accent)}
+  .seg.small button{font-size:.8rem}
+  .fchip{padding:8px 12px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);font-size:.87rem;color:var(--muted)}
+  .fchip.on{background:color-mix(in srgb,var(--accent) 20%,transparent);border-color:var(--accent);color:var(--text)}
+  .sec-title{font-size:1rem;margin:16px 0 8px}
+  .recipe .it{font-weight:650}
+  .ing{font-size:.78rem;padding:4px 9px;border-radius:99px;background:var(--bg2);color:#f9a8d4;border:1px dashed #f472b6}
+  .ing.ok{color:var(--cuerpo);border:1px solid transparent;background:color-mix(in srgb,var(--cuerpo) 15%,transparent)}
+  .shop{display:flex;align-items:center;gap:12px;width:100%;padding:8px 0;text-align:left;border-top:1px solid var(--line)}
+  .shop:first-of-type{border-top:0}
+  .shop .check{width:26px;height:26px;border-radius:8px;font-size:.9rem}
+  .shop .sn{flex:1;font-weight:600}
+  .shop .sq{color:var(--muted);font-size:.85rem}
+  .shop.done .sn,.shop.done .sq{text-decoration:line-through;opacity:.5}
+  .tag.tengo{background:var(--accent)}
   /* Settings */
   .field{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted);flex:1}
   .row{display:flex;gap:10px;margin-top:8px}
@@ -171,7 +188,9 @@
     <button data-act="go" data-v="cuerpo" data-cat="cuerpo">Cuerpo<small></small></button>
     <button data-act="go" data-v="espiritu" data-cat="espiritu">Espíritu<small></small></button>
   </nav>
-  <div class="subbar"><button class="hist-btn" id="histBtn" data-act="go" data-v="historial" aria-label="Historial">
+  <div class="subbar"><button class="hist-btn" id="fridgeBtn" data-act="go" data-v="heladera" aria-label="Heladera">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M5 10h14"/><path d="M8 5v2M8 13v3"/></svg>
+    <span>Heladera</span></button><button class="hist-btn" id="histBtn" data-act="go" data-v="historial" aria-label="Historial">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
     <span>Historial</span></button></div>
   <main id="view"></main>
@@ -310,6 +329,13 @@ function ideasFor(meal, k){
   const pool = meal==='desayuno'||meal==='merienda' ? FOOD[meal] : FOOD.platos;
   const tgt = targetedIdea(meal, k, pool);
   if(tgt) list = [tgt, ...list.filter(x=>x.t!==tgt.t)];
+  // Después: lo que podés hacer con lo que hay en la heladera
+  if(fridge().items.length){
+    list = list.map(x=>({...x, have: recipeIngs(x.t).length>0 && recipeIngs(x.t).every(have)}));
+    const head = tgt ? [list[0]] : [];
+    const rest = tgt ? list.slice(1) : list;
+    list = [...head, ...rest.filter(x=>x.have), ...rest.filter(x=>!x.have)];
+  }
   return list;
 }
 const frutaDelDia = k => FOOD.frutas[Math.round(fromKey(k).getTime()/864e5) % FOOD.frutas.length];
@@ -328,7 +354,7 @@ function ideasBox(m){
   const all = ideasFor(m, selDate), start = (ideasPage*3) % all.length;
   const list = [0,1,2].map(i=>all[(start+i)%all.length]);
   return `<div class="ideas">${list.map(it=>`<button class="idea" data-act="pick" data-m="${m}" data-t="${esc(it.t)}">
-      <div class="it">${it.target?`<span class="tag falta">Te faltó ${it.target}</span> `:''}${it.menu?'<span class="tag">Menú de hoy</span> ':''}${it.treat?'<span class="tag gusto">Gusto</span> ':''}${esc(it.t)}</div>
+      <div class="it">${it.target?`<span class="tag falta">Te faltó ${it.target}</span> `:''}${it.have?'<span class="tag tengo">Lo tenés</span> ':''}${it.menu?'<span class="tag">Menú de hoy</span> ':''}${it.treat?'<span class="tag gusto">Gusto</span> ':''}${esc(it.t)}</div>
       <div class="iw">${esc(it.why)}</div></button>`).join('')}
     <button class="btn small" data-act="more-ideas">🔄 Otras ideas</button></div>`;
 }
@@ -422,7 +448,7 @@ food('avena','Avena','carb',['avena'],'40 g',[150,5,27,2.7,4],{fe:10,pot:3});
 food('granola','Granola','carb',['granola','cereales','cereal'],'30 g',[140,3,20,5,2],{fe:6});
 // Proteínas
 food('carne_picada','Carne picada','prot',['carne picada','picadillo'],'120 g cocida',[290,31,0,18,0],{b12:135,fe:17,pot:8});
-food('carne','Carne','prot',['carne','bife','asado','churrasco','nalga','peceto','vacio','lomo','cuadril','roast beef'],'150 g cocida',[300,40,0,15,0],{b12:130,fe:20,pot:10});
+food('carne','Carne','prot',['carne','bife','asado de tira','churrasco','nalga','peceto','vacio','lomo','cuadril','roast beef'],'150 g cocida',[300,40,0,15,0],{b12:130,fe:20,pot:10});
 food('pollo','Pollo','prot',['pollo','pechuga','suprema','muslo'],'150 g cocido',[250,46,0,5.4,0],{b12:15,pot:11,fe:6});
 food('pescado','Pescado','prot',['pescado','merluza','filet','abadejo','brotola'],'150 g',[140,30,0,2,0],{b12:60,vD:15,pot:10});
 food('atun','Atún','prot',['atun'],'1 lata (120 g)',[140,30,0,1.5,0],{b12:125,vD:10,fe:8,pot:6});
@@ -528,9 +554,10 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
 
 function render(){
   const tk = todayKey();
-  $('#todayLabel').textContent = view==='ajustes' ? 'Ajustes' : view==='historial' ? 'Historial' : cap(fmtLong.format(new Date()));
+  $('#todayLabel').textContent = view==='ajustes' ? 'Ajustes' : view==='historial' ? 'Historial' : view==='heladera' ? 'Heladera' : cap(fmtLong.format(new Date()));
   $('#homeBtn').classList.toggle('hidden', view==='home');
   $('#histBtn').classList.toggle('active', view==='historial');
+  $('#fridgeBtn').classList.toggle('active', view==='heladera');
   const prog = catProgress(tk);
   document.querySelectorAll('#tabs button').forEach(b=>{
     const c=b.dataset.cat, arr=prog[c], n=arr.filter(Boolean).length;
@@ -542,6 +569,7 @@ function render(){
   if(view==='home'){ v.innerHTML = homeHTML(); updateHome(true); }
   else if(view==='ajustes'){ v.innerHTML = settingsHTML(); }
   else if(view==='historial'){ v.innerHTML = historyHTML(); }
+  else if(view==='heladera'){ v.innerHTML = fridgeHTML(); }
   else { v.innerHTML = catHTML(view); updateTimers(); }
 }
 
@@ -680,6 +708,7 @@ function catHTML(c){
           ${quickChips(m)}
           ${ideasOpen===m?ideasBox(m):''}`).join('')}
         <div class="muted" style="font-size:.8rem;margin-top:10px">Tocá una comida para agregar con un clic, o 💡 si no sabés qué comer.</div>
+        <button class="btn small" data-act="go-fridge">🧊 ¿Qué cocino con lo que tengo?</button>
         ${(()=>{ const p=fromKey(selDate); p.setDate(p.getDate()-1); const gs=dayGaps(keyOf(p)).slice(0,3);
           return gs.length?`<div class="note">📌 Ayer te faltó ${listJoin(gs.map(g=>'<b>'+g.label+'</b>'))}. La primera idea de 💡 te ayuda con eso.</div>`:''; })()}
       </div>
@@ -840,6 +869,156 @@ function nextDayRecs(k){
   return recs;
 }
 
+/* ============ Heladera ============ */
+const FRIDGE_SKIP = ['agua','cafe','fruta'];
+const SECTIONS = [
+  ['carni','🥩 Carnicería y pescadería'], ['verdu','🥦 Verdulería y frutas'],
+  ['lacteos','🧀 Lácteos, fiambres y huevos'], ['almacen','🛒 Almacén'],
+];
+function sectionOf(id){
+  const f = NUT[id];
+  if(['jamon','huevo'].includes(id) || f.group==='dairy') return 'lacteos';
+  if(id==='papas' || (f.group==='veg' && id!=='salsa') || f.group==='fruit') return 'verdu';
+  if(f.group==='prot' && id!=='lentejas' && id!=='atun') return 'carni';
+  if(['milanesa','hamburguesa'].includes(id)) return 'carni';
+  return 'almacen';
+}
+const FRUIT_IDS = () => Object.values(NUT).filter(f=>f.group==='fruit' && f.id!=='fruta').map(f=>f.id);
+const EQUIV = { salsa:['tomate'], jugo:['naranja'], pan:['tostadas'], tostadas:['pan'], galletitas:['oreos','vainillas'], carne_picada:[], milanesa:[], hamburguesa:['carne_picada'] };
+function fridge(){ state.fridge = state.fridge || {items:[], custom:[]}; return state.fridge; }
+function have(id){
+  const it = fridge().items;
+  if(id==='fruta') return FRUIT_IDS().some(f=>it.includes(f));
+  return it.includes(id) || (EQUIV[id]||[]).some(e=>it.includes(e));
+}
+const ingCache = {};
+function recipeIngs(t){
+  if(!ingCache[t]) ingCache[t] = [...new Set(matchFoods(t.replace(/\so\s+[^\s,+]+/g,'')).found.map(h=>h.id))].filter(id=>!['agua','cafe'].includes(id));
+  return ingCache[t];
+}
+function canCook(){
+  const pools = [
+    ...FOOD.platos.map(r=>({...r, meals:['almuerzo','cena']})),
+    ...FOOD.gustos.map(r=>({...r, meals:['almuerzo','cena']})),
+    ...FOOD.desayuno.map(r=>({...r, meals:['desayuno']})),
+    ...FOOD.merienda.map(r=>({...r, meals:['merienda']})),
+  ];
+  const prev = fromKey(todayKey()); prev.setDate(prev.getDate()-1);
+  const gap = dayGaps(keyOf(prev))[0];
+  return pools.map(r=>{
+    const ings = recipeIngs(r.t), miss = ings.filter(i=>!have(i));
+    const bonus = gap ? dishValue(r.t, gap.key) : 0;
+    return {...r, ings, miss, hits: ings.length-miss.length, bonus, gap: gap && bonus >= (ENOUGH[gap.key] ?? 25) ? gap.label : null};
+  }).filter(r=>r.hits>0).sort((a,b)=> a.miss.length-b.miss.length || b.bonus-a.bonus || b.hits-a.hits);
+}
+const BUY = {
+  carne_picada:[120,'g'], carne:[150,'g'], pollo:[150,'g'], pescado:[150,'g'], salmon:[150,'g'],
+  atun:[1,'lata','latas'], huevo:[1,'huevo','huevos'], jamon:[40,'g'], queso:[40,'g'], lentejas:[60,'g'],
+  fideos:[100,'g'], ravioles:[1,'porción','porciones'], noquis:[1,'porción','porciones'], arroz:[70,'g'],
+  papas:[1,'papa','papas'], leche:[250,'ml'], yogur:[1,'pote','potes'], pan:[2,'rebanada','rebanadas'],
+  salsa:[150,'g'], espinaca:[100,'g'], morron:[0.5,'morrón','morrones'], cebolla:[0.5,'cebolla','cebollas'],
+  tomate:[100,'g'], brocoli:[150,'g'], calabaza:[250,'g'], zanahoria:[1,'zanahoria','zanahorias'],
+  champinones:[80,'g'], arvejas:[80,'g'], crema:[50,'ml'], milanesa:[1,'milanesa','milanesas'],
+  hamburguesa:[1,'hamburguesa','hamburguesas'], avena:[40,'g'], granola:[30,'g'], vainillas:[1,'paquete','paquetes'],
+  jugo:[1,'naranja para exprimir','naranjas para exprimir'], frutillas:[250,'g'], arandanos:[125,'g'], uvas:[200,'g'],
+};
+function qtyText(id, uses){
+  const b = BUY[id];
+  if(!b){ return NUT[id].group==='fruit' ? `${uses} ${uses===1?'unidad':'unidades'}` : `para ${uses} ${uses===1?'comida':'comidas'}`; }
+  const tot = b[0]*uses;
+  if(b[1]==='g') return tot>=1000 ? `≈ ${(tot/1000).toFixed(1).replace('.0','')} kg` : `≈ ${Math.ceil(tot/50)*50} g`;
+  if(b[1]==='ml') return tot>=1000 ? `≈ ${(tot/1000).toFixed(1).replace('.0','')} l` : `≈ ${tot} ml`;
+  const n = Math.ceil(tot); return `${n} ${n===1?b[1]:b[2]}`;
+}
+let shopNext = false;
+function shoppingList(){
+  const tk = todayKey(); let ks = weekKeys(tk), start = dayIndex(tk);
+  if(shopNext){ const d = fromKey(ks[6]); d.setDate(d.getDate()+1); ks = weekKeys(keyOf(d)); start = 0; }
+  const plan = weekMenu(ks[0]), need = {};
+  const add = (id, n=1) => { if(id && NUT[id] && !FRIDGE_SKIP.includes(id)) need[id] = (need[id]||0)+n; };
+  for(let i=start;i<7;i++){
+    ['almuerzo','cena'].forEach(m=>recipeIngs(plan[i][m].t).forEach(id=>add(id)));
+    ['leche','pan','jamon','queso'].forEach(id=>add(id));               // tu desayuno y merienda de siempre
+    add(matchFoods(frutaDelDia(ks[i]).t).found[0]?.id);                  // fruta del día
+  }
+  add('vainillas', Math.ceil((7-start)/4));
+  const prev = fromKey(tk); prev.setDate(prev.getDate()-1);
+  const extra = dayGaps(keyOf(prev)).slice(0,2).map(g=>({g, id:bestFoodIds(g.key,1)[0]}));
+  extra.forEach(x=>add(x.id, 2));
+  return {need, days:7-start, extra};
+}
+function bestFoodIds(key, n=3){
+  const val = f => key==='p' ? f.p : key==='f' ? f.f : (f.micro[key]||0);
+  return Object.values(NUT).filter(f=>!f.combo && ['carb','prot','dairy','veg','fruit'].includes(f.group) && f.id!=='fruta')
+    .sort((a,b)=>val(b)-val(a)).slice(0,n).map(f=>f.id);
+}
+function shoppingText(){
+  const {need, days} = shoppingList(), lines = [`🛒 Lista de compras (${shopNext?'semana que viene':`${days} días`})`];
+  SECTIONS.forEach(([s,label])=>{
+    const ids = Object.keys(need).filter(id=>sectionOf(id)===s && !have(id));
+    if(ids.length){ lines.push('', label); ids.forEach(id=>lines.push(`• ${NUT[id].name} — ${qtyText(id,need[id])}`)); }
+  });
+  return lines.join('\n');
+}
+let fridgeTab = 'heladera';
+function fridgeHTML(){
+  const f = fridge();
+  const tabs = `<div class="seg">${[['heladera','🧊 Tengo'],['cocinar','🍳 Qué cocino'],['compras','🛒 Compras']].map(([k,l])=>
+    `<button class="${fridgeTab===k?'on':''}" data-act="ftab" data-t="${k}">${l}</button>`).join('')}</div>`;
+  let body = '';
+  if(fridgeTab==='heladera'){
+    const all = Object.values(NUT).filter(x=>!x.combo && !FRIDGE_SKIP.includes(x.id));
+    body = `<div class="muted" style="margin:0 0 10px">Tocá lo que tenés en la heladera y la alacena. Lo que está marcado se usa para recomendarte comidas.</div>
+      ${SECTIONS.map(([s,label])=>`<div class="card"><div class="head-row"><h3>${label}</h3>
+        <span class="muted" style="margin:0">${all.filter(x=>sectionOf(x.id)===s && f.items.includes(x.id)).length}</span></div>
+        <div class="chips">${all.filter(x=>sectionOf(x.id)===s).map(x=>`<button class="fchip ${f.items.includes(x.id)?'on':''}" data-act="fitem" data-id="${x.id}">${esc(x.name)}</button>`).join('')}</div></div>`).join('')}
+      <div class="card"><div class="head-row"><h3>➕ Otra cosa</h3></div>
+        <div class="row" style="margin:0"><label class="field" style="flex:1"><input id="fcustom" placeholder="Ej: choclo, ricota…"></label>
+        <button class="pill-btn" data-act="fadd">Agregar</button></div>
+        ${f.custom.length?`<div class="chips">${f.custom.map((c,i)=>`<button class="fchip on" data-act="fdel" data-i="${i}">${esc(c)} ✕</button>`).join('')}</div>`:''}
+      </div>
+      ${f.items.length||f.custom.length?`<button class="btn danger" data-act="fclear">Vaciar heladera</button>`:''}`;
+  }
+  if(fridgeTab==='cocinar'){
+    if(!f.items.length) body = `<div class="card"><div class="muted" style="margin:0">Primero marcá en 🧊 Tengo lo que hay en tu heladera.</div></div>`;
+    else {
+      const all = canCook(), ready = all.filter(r=>!r.miss.length).slice(0,8), almost = all.filter(r=>r.miss.length>0 && r.miss.length<=2).slice(0,8);
+      const card = r => `<div class="card recipe">
+        <div class="it">${r.gap?`<span class="tag falta">Te faltó ${r.gap}</span> `:''}${r.treat?'<span class="tag gusto">Gusto</span> ':''}${esc(r.t)}</div>
+        <div class="chips">${r.ings.map(i=>`<span class="ing ${have(i)?'ok':''}">${have(i)?'✓':'＋'} ${esc(NUT[i].name)}</span>`).join('')}</div>
+        <div class="chips">${r.meals.map(m=>`<button class="pill-btn" data-act="fcook" data-m="${m}" data-t="${esc(r.t)}">Anotar en ${MEALS.find(x=>x[0]===m)[1].toLowerCase()}</button>`).join('')}</div></div>`;
+      body = `<h3 class="sec-title">✅ Podés hacer ya</h3>
+        ${ready.length?ready.map(card).join(''):'<div class="card"><div class="muted" style="margin:0">Con lo que tenés no alcanza para un plato completo todavía. Mirá abajo lo que te falta poco.</div></div>'}
+        <h3 class="sec-title">🛒 Te falta poco</h3>
+        ${almost.length?almost.map(card).join(''):'<div class="card"><div class="muted" style="margin:0">Nada cerca. Revisá la pestaña 🛒 Compras.</div></div>'}`;
+    }
+  }
+  if(fridgeTab==='compras'){
+    const {need, days, extra} = shoppingList();
+    body = `<div class="seg small">
+        <button class="${!shopNext?'on':''}" data-act="fweek" data-n="0">Lo que queda de esta semana</button>
+        <button class="${shopNext?'on':''}" data-act="fweek" data-n="1">Semana que viene</button></div>
+      <div class="muted" style="margin:0 0 10px">Armada con tu menú de la semana (${days} días), tu desayuno y merienda de siempre y la fruta del día. Lo que ya está en tu heladera aparece tachado. Tocá un producto cuando lo compres y pasa a la heladera.</div>
+      ${extra.length?`<div class="note" style="margin:0 0 12px">📌 Sumé ${listJoin(extra.map(x=>`<b>${NUT[x.id].name.toLowerCase()}</b> (por la ${x.g.label} que te faltó ayer)`))}.</div>`:''}
+      ${SECTIONS.map(([s,label])=>{
+        const ids = Object.keys(need).filter(id=>sectionOf(id)===s).sort((a,b)=>have(a)-have(b));
+        if(!ids.length) return '';
+        return `<div class="card"><div class="head-row"><h3>${label}</h3></div>
+          ${ids.map(id=>`<button class="shop ${have(id)?'done':''}" data-act="fitem" data-id="${id}">
+            <span class="check ${have(id)?'on':''}">${have(id)?'✓':''}</span>
+            <span class="sn">${esc(NUT[id].name)}</span><span class="sq">${qtyText(id,need[id])}</span></button>`).join('')}</div>`;
+      }).join('')}
+      <button class="btn" data-act="fshare">📤 Compartir / copiar lista</button>`;
+  }
+  return `<div data-c="cuerpo"><h1 class="cat-title">🧊 Heladera</h1>${tabs}${body}</div>`;
+}
+async function shareList(){
+  const text = shoppingText();
+  try{ if(navigator.share){ await navigator.share({text}); return; } }catch(e){ if(e && e.name==='AbortError') return; }
+  try{ await navigator.clipboard.writeText(text); toast('Lista copiada'); }
+  catch(e){ toast('No se pudo copiar'); }
+}
+
 /* ============ Historial ============ */
 let histOpen = null;
 const listJoin = a => a.length<=1 ? (a[0]||'') : a.slice(0,-1).join(', ')+' y '+a[a.length-1];
@@ -990,6 +1169,22 @@ document.addEventListener('click', e=>{
       if(state.timers[f]) delete state.timers[f]; else state.timers[f] = Date.now()+GOALS.minutosMente*60*1000;
       save(); updateTimers(); break; }
     case 'ideas': ideasOpen = ideasOpen===t.dataset.m ? null : t.dataset.m; ideasPage=0; render(); break;
+    case 'go-fridge': view='heladera'; fridgeTab='cocinar'; ideasOpen=null; render(); window.scrollTo(0,0); break;
+    case 'ftab': fridgeTab = t.dataset.t; render(); break;
+    case 'fweek': shopNext = t.dataset.n==='1'; render(); break;
+    case 'fitem': { const f=fridge(), id=t.dataset.id, i=f.items.indexOf(id);
+      if(i>=0) f.items.splice(i,1); else f.items.push(id); save(); render(); break; }
+    case 'fadd': { const inp=$('#fcustom'), v=inp.value.trim(); if(!v) break;
+      const r = matchFoods(v), f = fridge();
+      if(r.found.length){ r.found.forEach(h=>{ if(!f.items.includes(h.id)) f.items.push(h.id); }); toast('Agregado'); }
+      else { f.custom.push(v); toast('Agregado como otra cosa'); }
+      save(); render(); break; }
+    case 'fdel': fridge().custom.splice(Number(t.dataset.i),1); save(); render(); break;
+    case 'fclear': if(t.dataset.armed){ state.fridge={items:[],custom:[]}; save(); render(); toast('Heladera vacía'); } else { t.dataset.armed='1'; t.textContent='Tocá de nuevo para vaciar'; } break;
+    case 'fcook': { const tk=todayKey(), d=getDay(tk), m=t.dataset.m, cur=d.comidas[m].trim();
+      d.comidas[m] = cur ? cur+' + '+t.dataset.t : t.dataset.t; updateDay(tk,{comidas:d.comidas});
+      toast(`Anotado en ${MEALS.find(x=>x[0]===m)[1].toLowerCase()} de hoy`); render(); break; }
+    case 'fshare': shareList(); break;
     case 'hist': histOpen = histOpen===t.dataset.k ? '' : t.dataset.k; render(); break;
     case 'more-ideas': ideasPage++; render(); break;
     case 'pick': {
@@ -1015,6 +1210,7 @@ document.addEventListener('click', e=>{
       break;
   }
 });
+document.addEventListener('keydown', e=>{ if(e.key==='Enter' && e.target.id==='fcustom'){ e.preventDefault(); document.querySelector('[data-act=fadd]').click(); } });
 document.addEventListener('input', e=>{
   const el = e.target;
   if(el.dataset.meal){
@@ -1055,7 +1251,7 @@ document.addEventListener('change', e=>{
       try{
         const s = JSON.parse(r.result);
         if(!s || typeof s.days!=='object') throw 0;
-        state = {days:s.days, schedule:Array.isArray(s.schedule)?s.schedule:structuredClone(DEFAULT_SCHEDULE), timers:{}, menuSeed:s.menuSeed||{}};
+        state = {days:s.days, schedule:Array.isArray(s.schedule)?s.schedule:structuredClone(DEFAULT_SCHEDULE), timers:{}, menuSeed:s.menuSeed||{}, fridge:s.fridge||{items:[],custom:[]}};
         save(); toast('Datos importados'); render();
       }catch(err){ toast('Ese archivo no es una copia válida'); }
     };

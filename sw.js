@@ -1,5 +1,5 @@
 // Permite usar la app sin conexión. Siempre intenta traer la última versión de internet primero.
-const CACHE = 'orden-v6';
+const CACHE = 'orden-v7';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
